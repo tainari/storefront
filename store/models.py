@@ -1,4 +1,6 @@
 from django.db import models
+from django.core.validators import MinValueValidator
+#from django.core.exceptions import ValidationError
 
 # def validate_phone(value):
 #     if not 1000000000 <= value <= 9999999999:
@@ -14,7 +16,12 @@ class Promotion(models.Model):
 
 class Collection(models.Model):
     title = models.CharField(max_length=255)
-    featuredproduct = models.ForeignKey('Product',on_delete=models.SET_NULL,null=True,related_name='+')
+    featured_product = models.ForeignKey(
+        'Product', on_delete=models.SET_NULL, null=True, related_name='+')
+    def __str__(self) -> str:
+        return self.title
+    class Meta:
+        ordering = ['title']
 
     
 class Product(models.Model):
@@ -22,11 +29,17 @@ class Product(models.Model):
     slug = models.SlugField(null=True)
     description = models.TextField()
     #max price: $9999.99
-    unit_price = models.DecimalField(max_digits=6, decimal_places=2)
+    unit_price = models.DecimalField(max_digits=6,
+                                      decimal_places=2,
+                                      validators = [MinValueValidator(1)])
     inventory = models.IntegerField()
-    last_updated = models.DateTimeField(auto_now=True)
+    last_update = models.DateTimeField(auto_now=True)
     collection = models.ForeignKey(Collection,on_delete=models.PROTECT)
-    promotions = models.ManyToManyField(Promotion)
+    promotions = models.ManyToManyField(Promotion,blank=True)
+    def __str__(self) -> str:
+        return self.title
+    class Meta:
+        ordering = ['title']
 
 
 class Customer(models.Model):
@@ -41,14 +54,17 @@ class Customer(models.Model):
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     email  = models.EmailField(unique=True)
-    phone = models.CharField(max_length=10)#models.PositiveIntegerField(validators=[validate_phone])
+    phone = models.CharField(max_length=15)#models.PositiveIntegerField(validators=[validate_phone])
     birth_date = models.DateField(null=True)
     membership = models.CharField(max_length=1,choices=MEMBERSHIP_CHOICES,default=MEMBERSHIP_BRONZE)
+    def __str__(self) -> str:
+        return f'{self.first_name} {self.last_name}'
     class Meta:
         db_table = 'store_customer'
         indexes = [
             models.Index(fields = ["last_name","first_name"])
         ]
+        ordering = ['first_name','last_name']
 
 class Order(models.Model):
     STATUS_PENDING = "P"
